@@ -7,12 +7,11 @@ namespace AIArmada\FilamentVouchers\Widgets;
 use AIArmada\FilamentCart\Models\Cart;
 use AIArmada\FilamentCart\Services\CartInstanceManager;
 use AIArmada\Vouchers\Exceptions\VoucherException;
-use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
@@ -35,11 +34,11 @@ final class QuickApplyVoucherWidget extends Widget implements HasForms
     public string $voucherCode = '';
 
     /** @phpstan-ignore-next-line */
-    protected string $view = 'filament-vouchers::widgets.quick-apply-voucher';
+    protected static string $view = 'filament-vouchers::widgets.quick-apply-voucher';
 
     protected int|string|array $columnSpan = 'full';
 
-    public function form(Schema $form): Schema
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
@@ -50,7 +49,7 @@ final class QuickApplyVoucherWidget extends Widget implements HasForms
                     ->maxLength(255)
                     ->autocomplete(false)
                     ->suffixAction(
-                        Action::make('apply')
+                        \Filament\Forms\Components\Actions\Action::make('apply')
                             ->label('Apply')
                             ->icon(Heroicon::OutlinedTicket)
                             ->action('applyVoucher')

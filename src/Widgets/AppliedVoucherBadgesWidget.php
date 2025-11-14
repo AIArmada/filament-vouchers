@@ -12,7 +12,6 @@ use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Lazy;
 use Throwable;
 
@@ -25,7 +24,7 @@ final class AppliedVoucherBadgesWidget extends Widget
     public ?Model $record = null;
 
     /** @phpstan-ignore-next-line */
-    protected string $view = 'filament-vouchers::widgets.applied-voucher-badges';
+    protected static string $view = 'filament-vouchers::widgets.applied-voucher-badges';
 
     protected int|string|array $columnSpan = 'full';
 
