@@ -1,0 +1,211 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AIArmada\FilamentVouchers\Resources\VoucherResource\Tables;
+
+use AIArmada\Vouchers\Models\VoucherWallet;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+
+final class WalletEntriesTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->defaultSort('created_at', 'desc')
+            ->columns([
+                TextColumn::make('holder_type')
+                    ->label('Holder Type')
+                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : '—')
+                    ->badge()
+                    ->color(function (?string $state): string {
+                        $type = $state ? class_basename($state) : '';
+
+                        return match ($type) {
+                            'User' => 'success',
+                            'Store' => 'info',
+                            'Team' => 'warning',
+                            default => 'gray',
+                        };
+                    })
+                    ->icon(function (?string $state): Heroicon {
+                        $type = $state ? class_basename($state) : '';
+
+                        return match ($type) {
+                            'User' => Heroicon::OutlinedUser,
+                            'Store' => Heroicon::OutlinedBuildingStorefront,
+                            'Team' => Heroicon::OutlinedUserGroup,
+                            default => Heroicon::OutlinedQuestionMarkCircle,
+                        };
+                    })
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('holder_id')
+                    ->label('Holder ID')
+                    ->copyable()
+                    ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->state(function (VoucherWallet $record): string {
+                        if ($record->is_redeemed) {
+                            return 'Redeemed';
+                        }
+
+                        if ($record->is_claimed) {
+                            return 'Claimed';
+                        }
+
+                        return 'Available';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Redeemed' => 'danger',
+                        'Claimed' => 'warning',
+                        'Available' => 'success',
+                        default => 'gray',
+                    })
+                    ->icon(fn (string $state): Heroicon => match ($state) {
+                        'Redeemed' => Heroicon::OutlinedCheckBadge,
+                        'Claimed' => Heroicon::OutlinedShieldCheck,
+                        'Available' => Heroicon::OutlinedSparkles,
+                        default => Heroicon::OutlinedQuestionMarkCircle,
+                    })
+                    ->sortable(query: function ($query, string $direction): void {
+                        $query->orderBy('is_redeemed', $direction)
+                            ->orderBy('is_claimed', $direction);
+                    }),
+
+                IconColumn::make('is_expired')
+                    ->label('Expired?')
+                    ->state(fn (VoucherWallet $record): bool => $record->isExpired())
+                    ->boolean()
+                    ->trueIcon(Heroicon::OutlinedXCircle)
+                    ->falseIcon(Heroicon::OutlinedCheckCircle)
+                    ->trueColor('danger')
+                    ->falseColor('success')
+                    ->tooltip(
+                        fn (VoucherWallet $record): string => $record->isExpired()
+                        ? 'This voucher has expired'
+                        : 'This voucher is still valid'
+                    )
+                    ->toggleable(),
+
+                TextColumn::make('claimed_at')
+                    ->label('Claimed At')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                TextColumn::make('redeemed_at')
+                    ->label('Redeemed At')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                IconColumn::make('metadata')
+                    ->label('Notes?')
+                    ->boolean()
+                    ->tooltip('Wallet entry contains metadata')
+                    ->state(fn (VoucherWallet $record): bool => ! empty($record->metadata))
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('created_at')
+                    ->label('Added At')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('holder_type')
+                    ->label('Holder Type')
+                    ->options([
+                        'App\\Models\\User' => 'User',
+                        'App\\Models\\Store' => 'Store',
+                        'App\\Models\\Team' => 'Team',
+                    ])
+                    ->native(false),
+
+                TernaryFilter::make('is_claimed')
+                    ->label('Claimed')
+                    ->nullable()
+                    ->trueLabel('Claimed Only')
+                    ->falseLabel('Unclaimed Only')
+                    ->queries(
+                        true: fn ($query) => $query->where('is_claimed', true),
+                        false: fn ($query) => $query->where('is_claimed', false),
+                        blank: fn ($query) => $query,
+                    ),
+
+                TernaryFilter::make('is_redeemed')
+                    ->label('Redeemed')
+                    ->nullable()
+                    ->trueLabel('Redeemed Only')
+                    ->falseLabel('Not Redeemed')
+                    ->queries(
+                        true: fn ($query) => $query->where('is_redeemed', true),
+                        false: fn ($query) => $query->where('is_redeemed', false),
+                        blank: fn ($query) => $query,
+                    ),
+            ])
+            ->actions([
+                Action::make('markAsRedeemed')
+                    ->label('Mark Redeemed')
+                    ->icon(Heroicon::OutlinedCheckBadge)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (VoucherWallet $record): bool => ! $record->is_redeemed)
+                    ->action(function (VoucherWallet $record): void {
+                        $record->markAsRedeemed();
+                    }),
+
+                Action::make('removeFromWallet')
+                    ->label('Remove')
+                    ->icon(Heroicon::OutlinedTrash)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (VoucherWallet $record): void {
+                        $record->delete();
+                    }),
+
+                Action::make('viewMetadata')
+                    ->label('View Metadata')
+                    ->icon(Heroicon::OutlinedInformationCircle)
+                    ->color('info')
+                    ->modalHeading('Wallet Entry Metadata')
+                    ->modalContent(fn (VoucherWallet $record): string => view('filament-vouchers::components.json-viewer', [
+                        'data' => $record->metadata ?? [],
+                    ])->render())
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->visible(fn (VoucherWallet $record): bool => ! empty($record->metadata)),
+            ])
+            ->bulkActions([
+                BulkAction::make('markAsRedeemed')
+                    ->label('Mark as Redeemed')
+                    ->icon(Heroicon::OutlinedCheckBadge)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records): void {
+                        $records->each->markAsRedeemed();
+                    }),
+
+                DeleteBulkAction::make()
+                    ->label('Remove from Wallets'),
+            ])
+            ->recordUrl(null);
+    }
+}
