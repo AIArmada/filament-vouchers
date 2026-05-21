@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace AIArmada\FilamentVouchers\Resources\VoucherUsageResource\Tables;
 
 use AIArmada\FilamentVouchers\Resources\VoucherResource;
+use AIArmada\FilamentVouchers\Support\MoneyHelper;
 use AIArmada\Vouchers\Models\VoucherUsage;
-use Akaunting\Money\Money;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -21,9 +21,9 @@ final class VoucherUsagesTable
             ->defaultSort('used_at', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->with(['voucher', 'redeemedBy']))
             ->columns([
-                TextColumn::make('redeemedBy.user.email')
+                TextColumn::make('user_identifier')
                     ->label('User')
-                    ->searchable()
+                    ->state(static fn (VoucherUsage $record): string => $record->user_identifier)
                     ->wrap()
                     ->placeholder('N/A'),
 
@@ -50,10 +50,7 @@ final class VoucherUsagesTable
                 TextColumn::make('discount_amount')
                     ->label('Discount')
                     ->formatStateUsing(static function ($state, VoucherUsage $record): string {
-                        $currency = mb_strtoupper((string) ($record->currency ?? config('filament-vouchers.default_currency', 'MYR')));
-
-                        // Value is already stored as cents (integer)
-                        return (string) Money::{$currency}((int) $state);
+                        return MoneyHelper::formatMoney((int) $state, (string) ($record->currency ?? config('filament-vouchers.default_currency', 'MYR')));
                     })
                     ->alignEnd(),
 
@@ -61,10 +58,10 @@ final class VoucherUsagesTable
                     ->label('Order Number')
                     ->toggleable()
                     ->formatStateUsing(
-                        fn ($state, VoucherUsage $record) => $record->redeemed_by_type === 'order' ? $state : null
+                        fn ($state, VoucherUsage $record) => $record->isOrderRedemption() ? $state : null
                     )
                     ->url(function (VoucherUsage $record): ?string {
-                        if ($record->redeemed_by_type !== 'order' || ! $record->redeemedBy) {
+                        if (! $record->isOrderRedemption() || ! $record->redeemedBy) {
                             return null;
                         }
 

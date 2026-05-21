@@ -6,8 +6,8 @@ namespace AIArmada\FilamentVouchers\Widgets;
 
 use AIArmada\FilamentCart\Models\Cart;
 use AIArmada\FilamentCart\Services\CartInstanceManager;
+use AIArmada\FilamentVouchers\Support\MoneyHelper;
 use AIArmada\FilamentVouchers\Support\OwnerScopedQueries;
-use Akaunting\Money\Money;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -72,7 +72,7 @@ final class AppliedVoucherBadgesWidget extends Widget
                 // Determine discount text based on type
                 $discountText = match ($type) {
                     'percentage' => number_format($value / 100, 2) . ' %',
-                    'fixed' => Money::{$currency}($value)->format(),
+                    'fixed' => MoneyHelper::formatMoney((int) $value, (string) $currency),
                     'free_shipping' => 'Free Shipping',
                     default => 'Discount',
                 };
@@ -188,7 +188,7 @@ final class AppliedVoucherBadgesWidget extends Widget
 
         // Check usage limit
         if (property_exists($voucher, 'usage_limit') && $voucher->usage_limit) {
-            $remaining = property_exists($voucher, 'getRemainingUses')
+            $remaining = method_exists($voucher, 'getRemainingUses')
                 ? $voucher->getRemainingUses()
                 : null;
 
