@@ -185,7 +185,7 @@ if ($bridge->isAvailable()) {
 | `getCartResource()` | Get the Filament Cart resource class |
 | `resolveCartUrl($cartId)` | Generate URL to a specific cart |
 | `findCart($cartId)` | Find a cart by ID with owner scoping |
-| `getCartInstance($cart)` | Get the live cart for a snapshot |
+| `getCartInstance($cart)` | Resolve the `CartInstanceManager` into a live `Cart` for that row, or `null` when unavailable |
 | `getAppliedVouchers($cart)` | Get collection of applied voucher codes |
 | `applyVoucher($cart, $code)` | Apply a voucher code to a cart |
 | `removeVoucher($cart, $code)` | Remove a voucher from a cart |
@@ -211,7 +211,7 @@ if ($cart) {
     if (!$bridge->hasVoucher($cart, 'SUMMER2024')) {
         try {
             $bridge->applyVoucher($cart, 'SUMMER2024');
-        } catch (VoucherApplicationException $e) {
+        } catch (\AIArmada\Vouchers\Exceptions\InvalidVoucherException $e) {
             // Handle error
         }
     }

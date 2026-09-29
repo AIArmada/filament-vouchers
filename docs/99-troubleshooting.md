@@ -173,7 +173,8 @@ Reduce polling interval or disable:
 'polling_interval' => null, // Disable polling
 ```
 
-Add indexes to frequently queried columns:
+Add indexes to frequently queried columns (table name comes from
+`config/vouchers.php` `database.tables.vouchers`, default `vouchers`):
 
 ```php
 Schema::table('vouchers', function (Blueprint $table) {
