@@ -89,24 +89,7 @@ class ViewCart extends BaseViewCart
 
 ### Edit Cart Page
 
-```php
-// app/Filament/Resources/CartResource/Pages/EditCart.php
-namespace App\Filament\Resources\CartResource\Pages;
-
-use AIArmada\FilamentCart\Resources\CartResource\Pages\EditCart as BaseEditCart;
-use AIArmada\FilamentVouchers\Extensions\CartVoucherActions;
-
-class EditCart extends BaseEditCart
-{
-    protected function getHeaderActions(): array
-    {
-        return [
-            CartVoucherActions::applyVoucher(),
-            ...parent::getHeaderActions(),
-        ];
-    }
-}
-```
+`CartResource` is read-only (list and view pages only; editing is disabled), so there is no edit page to extend. Attach voucher actions to `ViewCart` as shown above.
 
 ## Cart Widgets
 
@@ -202,7 +185,7 @@ if ($bridge->isAvailable()) {
 | `getCartResource()` | Get the Filament Cart resource class |
 | `resolveCartUrl($cartId)` | Generate URL to a specific cart |
 | `findCart($cartId)` | Find a cart by ID with owner scoping |
-| `getCartInstance($cart)` | Resolve the `CartInstanceManager` into a live `Cart` for that row, or `null` when unavailable |
+| `getCartInstance($cart)` | Get the live cart for a snapshot |
 | `getAppliedVouchers($cart)` | Get collection of applied voucher codes |
 | `applyVoucher($cart, $code)` | Apply a voucher code to a cart |
 | `removeVoucher($cart, $code)` | Remove a voucher from a cart |
@@ -228,7 +211,7 @@ if ($cart) {
     if (!$bridge->hasVoucher($cart, 'SUMMER2024')) {
         try {
             $bridge->applyVoucher($cart, 'SUMMER2024');
-        } catch (\AIArmada\Vouchers\Exceptions\InvalidVoucherException $e) {
+        } catch (VoucherApplicationException $e) {
             // Handle error
         }
     }

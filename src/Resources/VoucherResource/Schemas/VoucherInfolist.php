@@ -44,7 +44,7 @@ final class VoucherInfolist
                             TextEntry::make('value_label')
                                 ->label('Value'),
 
-                            TextEntry::make('effective_status')
+                            TextEntry::make('status')
                                 ->label('Status')
                                 ->formatStateUsing(static fn (VoucherStatus | string $state): string => VoucherStatus::labelFor($state))
                                 ->badge(),

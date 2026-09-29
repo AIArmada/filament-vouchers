@@ -47,7 +47,7 @@ public function getWidgets(): array
 ```
 
 Features:
-- 7-day, 14-day, 30-day, 90-day filter options
+- 7-day, 30-day, 90-day filter options
 - Owner-scoped when multi-tenancy is enabled
 - Uses Filament ChartWidget
 
@@ -216,8 +216,18 @@ Monetary values use the configured default currency:
 'default_currency' => 'MYR',
 ```
 
-Widgets format money through `AIArmada\FilamentVouchers\Support\MoneyHelper::formatMoney($cents, $currency)`, which delegates to `AIArmada\CommerceSupport\Support\MoneyFormatter` so the currency's own minor-unit precision is respected.
+Widgets use `Akaunting\Money\Money` for proper currency formatting.
 
 ## Owner Scoping
 
 All widgets respect owner scoping when `vouchers.owner.enabled` is `true`. They will only display data belonging to the resolved owner. Global vouchers use `null` owner columns (`owner_type` and `owner_id`), not empty strings.
+
+All five record widgets (`AppliedVouchersWidget`, `QuickApplyVoucherWidget`,
+`VoucherSuggestionsWidget`, `VoucherUsageTimelineWidget`,
+`VoucherCartStatsWidget`) additionally use `VerifiesRecordOwnerContext` (from
+`commerce-support`): each record is re-verified against the current owner scope
+on every Livewire request, and a mid-session owner change clears the record so
+the widget renders empty instead of stale cross-owner data. Record props are
+`#[Locked]` against client-side tampering. See
+[Multi-tenancy](../../commerce-support/docs/14-multi-tenancy.md#livewire-record-components)
+for the shared contract.
